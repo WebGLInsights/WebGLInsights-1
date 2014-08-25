@@ -1,4 +1,4 @@
 WebGL Insights
 ==============
 
-/www.webglinsights.com
+www.webglinsights.com
