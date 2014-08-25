@@ -1,4 +1,4 @@
-WebGLInsights-1
-===============
+WebGL Insights
+==============
 
-Source code for WebGL Insights Volume 1
+/www.webglinsights.com
