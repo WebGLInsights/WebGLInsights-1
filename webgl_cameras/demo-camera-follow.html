@@ -1,0 +1,283 @@
+<!--
+Copyright (c) 2015, Diego Cantor
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer. 
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The views and conclusions contained in the software and documentation are those
+of the authors and should not be interpreted as representing official policies, 
+either expressed or implied, of the FreeBSD Project.
+//-->
+<html>
+<head>
+<meta name='Diego Cantor'       content='Voxelent'>
+<meta name='robots'             content='all'>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name='keywords'           content='webgl, webgl platform, medical imaging, webgl api'>
+<meta http-equiv="expires"      content="0">
+<link rel='stylesheet'          type='text/css' href='css/jquery-ui-bs/theme.css'/>
+<script src="lib/jquery.js"     type="text/javascript"></script>
+<script src="lib/jquery-ui.js"  type="text/javascript"> </script>
+<script type='text/javascript'  src='lib/voxelent_v0.90.2.js'> </script>
+<script type='text/javascript'  src='lib/vox-gui_v0.1.js'> </script>
+<link rel='stylesheet'          type='text/css' href='css/prettify/sunburst-2.css'/>
+<script type='text/javascript'  src='lib/prettify.js'></script> 
+<title>Voxelent - Demo: following an actor</title>
+
+<script type='text/javascript'>
+
+var view, cone, cam;
+
+
+function runVoxApp(){
+	
+	window.prettyPrint(); //to highlight our code snippets
+	
+    vxl.api.subscribe(vxl.events.MODELS_LOADED, this);
+    view = vxl.api.setup('view-1');
+    var gui = new vxlGUI(view); 
+    vxl.api.load(['sphere.json'],'assets/models/geometry',vxl.def.model.loadingMode.DETACHED);
+    
+    view.start();
+};
+
+
+var FREQUENCY = 10, STEPS = 500, BOARD = 300, NUM_ACTORS = 50;
+
+var elapsedTime = undefined;
+var initialTime = undefined;
+var timerID = -1;
+
+var state = [];
+
+function reset(trajectory){
+	trajectory.init = trajectory.end;
+	trajectory.end = getRandomPosition();
+	trajectory.step = 0;
+};
+
+function updatePositions(){
+	var list = vxl.c.scene._actors;
+	var i = list.length;
+	var trajectory, actor, curr, frac;
+    while(i--){
+     	trajectory = state[i];
+    	actor = list[i];
+    	frac = trajectory.step / trajectory.steps;
+ 
+    	curr = vec3.lerp(vec3.create(), trajectory.init, trajectory.end,frac);
+    	actor.setPosition(curr);
+    	
+    	trajectory.step++;
+    	
+    	if (trajectory.step == trajectory.steps){
+    		reset(trajectory);
+    	} 
+    	
+    }
+    cam.refresh();
+};
+ 
+function onFrame(){
+    elapsedTime = (new Date).getTime() - initialTime;
+    if (elapsedTime < FREQUENCY) return; //come back later!
+    var units = Math.floor(elapsedTime / FREQUENCY);
+   
+    while(units > 0){
+        updatePositions();
+        units -= 1;
+    }
+    initialTime = (new Date).getTime();
+};
+ 
+function startAnimation(){
+    initialTime = (new Date).getTime();
+    
+    var list = vxl.c.scene._actors;
+    var i = list.length;
+    while(i--){
+    	var t = {'name':list[i].name,
+    		     'init':getRandomPosition(),
+    	         'end':getRandomPosition(),
+    	         'step':0,
+    	         'steps':Math.floor(Math.random()*100) + 300,
+    	         'color':vec3.clone(list[i].material.diffuse)};
+    	
+    	state.push(t);
+    }
+        
+    timerID = setInterval(onFrame,FREQUENCY);
+};
+
+function getRandomPosition(){
+	return vec3.fromValues(Math.random()*BOARD*(Math.random()>0.5?1:-1), 
+                           0,
+                           Math.random()*BOARD*(Math.random()>0.5?1:-1));
+};
+
+function handleEvent(event){
+    cam = vxl.c.camera;
+    var mman = vxl.go.modelManager;
+    sphere     = new vxlActor(mman.getModelByName('sphere'));
+    
+    for (var i=0;i<NUM_ACTORS;i+=1){
+    	var clone = sphere.clone();
+        clone.setColor(Math.random(), Math.random(), Math.random());
+        clone._bb_disabled = true; //fast animation
+        clone.setPosition(getRandomPosition());
+        vxl.c.scene.addActor(clone);
+    }
+   
+    cam.setType(vxl.def.camera.type.TRACKING, vxl.def.camera.tracking.DEFAULT);
+    cam.setPosition(0,20,100);
+    cam.setAzimuth(0);
+    cam.setElevation(-20);
+    vxl.api.floorON(BOARD,5);
+    startAnimation();
+    
+    setupSelector(vxl.c.scene._actors);
+};
+
+function setupSelector(list){
+    var options = "";
+    
+    for (var i=0;i<list.length;i+=1){
+        options += '<option value=\"'+list[i].name+'\">'+list[i].name+'</option>';
+    }
+    
+    $('#select-actor').html(options);
+    $('#select-actor').change(function(){
+    	var name = $('#select-actor').val();
+    	$('#code-actor').html("'"+name+"'");
+    	window.prettyPrint();
+    	cam.follow(name);
+    	var color = vxl.api.getActor(name).material.diffuse;
+    	var hex = vxl.util.rgb2hex(vxl.util.frac2rgb(color));
+    	$('.color-id').css('background',hex);
+  
+    });
+    $('#num-actors').html('Pick one from ' + NUM_ACTORS+' actors');
+
+};
+</script>
+
+<script type="text/javascript">
+  //Google Analytics Script 
+ var _gaq = _gaq || []; _gaq.push(['_setAccount', 'UA-26954785-1']); _gaq.push(['_trackPageview']);  (function() {  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;     ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';     var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);   })();
+</script>
+<style type="text/css">
+.show {
+
+     position: relative;
+}
+
+.overlay {
+    background: rgba(100,100,100,0.5);
+    padding: 10px;
+    width: 405px;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size:12px;
+    font-family: Arial,Helvetica;
+    color: white;
+    display: block;
+}
+
+.color-id {
+	background: rgba(0,0,0,0.5);
+	width:30px;
+	height:20px;
+	display:inline-block;
+    border-radius:5px;
+    vertical-align: bottom;
+}
+
+
+</style> 
+</head>
+<body onload='runVoxApp();'>
+	<div><img src="css/img/voxelent.png" /></div>
+	<div>
+	<canvas id = 'view-1' width='1200' height='600'>
+		<p>
+			Your browser does not support WebGL :-(
+		</p>
+	</canvas>
+	<div id='overlay-div' class='overlay'>
+	  <p> 1. First of all the camera needs to be of type TRACKING.
+	  You do this with:</p>
+	  <pre class='prettyprint'>
+	  	var c = vxl.c.camera; 
+	  	c.setType(vxl.def.camera.type.<i>TRACKING</i>);
+	  </pre>
+
+      <p> 2. Select the type of tracking with <code>setTrackingType</code>. For
+      	example:</p> 
+      <pre class='prettyprint'>
+      	c.setTrackingType(vxl.def.camera.tracking.<i><span id='code-type'>DEFAULT</span></i>);
+      </pre>
+      <p>
+      <button class='ui-button' id='btnRotational'>Rotational</button>
+      <button class='ui-button' id='btnTranslational'>Translational</button>
+      <button class='ui-button' id='btnCinematic'>Cinematic</button>
+      <button class='ui-button' id='btnDefault'>Default</button>
+      </p> 
+      <p>The DEFAULT mode does not follow the actor, even if the camera
+      	is configured to do so with <code>vxlCamera.follow</code>
+      </p>
+      <p>3. Tell the camera who to follow: </p>
+      <pre class='prettyprint'>
+      	c.follow(<span id='code-actor'>'test'</span>);
+      </pre>
+      <span id='num-actors'></span>
+      <select id='select-actor'></select><div class='color-id'></div>
+      
+    </div>  
+</div>
+<script>
+$('#btnRotational').button().click(function(){
+	var c = vxl.c.camera;
+	c.setTrackingMode(vxl.def.camera.tracking.ROTATIONAL);
+	$("#code-type").html("ROTATIONAL");
+});
+$('#btnTranslational').button().click(function(){
+	var c = vxl.c.camera;
+	c.setTrackingMode(vxl.def.camera.tracking.TRANSLATIONAL);
+	$('#code-type').html('TRANSLATIONAL');
+});
+$('#btnCinematic').button().click(function(){
+	var c = vxl.c.camera;
+	c.setTrackingMode(vxl.def.camera.tracking.CINEMATIC);
+	$('#code-type').html('CINEMATIC');
+	
+});
+$('#btnDefault').button().click(function(){
+	var c = vxl.c.camera;
+	c.setTrackingMode(vxl.def.camera.tracking.DEFAULT);
+	$('#code-type').html('DEFAULT');
+	
+});
+
+
+</script>
+</body>			
+</html>

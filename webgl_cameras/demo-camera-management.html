@@ -1,0 +1,216 @@
+<!--
+Copyright (c) 2015, Diego Cantor
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer. 
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The views and conclusions contained in the software and documentation are those
+of the authors and should not be interpreted as representing official policies, 
+either expressed or implied, of the FreeBSD Project.
+//-->
+<html>
+<head>
+<meta name='Diego Cantor'       content='Voxelent'>
+<meta name='robots'             content='all'>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name='keywords'           content='webgl, webgl platform, medical imaging, webgl api'>
+<meta http-equiv="expires"      content="0">
+<link rel='stylesheet'          type='text/css' href='css/jquery-ui-bs/theme.css'/>
+<script src="lib/jquery.js"     type="text/javascript"></script>
+<script src="lib/jquery-ui.js"  type="text/javascript"> </script>
+<script type='text/javascript'  src='lib/voxelent_v0.90.2.js'> </script>
+<script type='text/javascript'  src='lib/vox-gui_v0.1.js'> </script>
+
+<title>Voxelent - Camera Management Demo</title>
+
+<script type='text/javascript'>
+
+var view, cone, sphere, cylinder, cam0, cam1, cam2;
+
+/**
+ * Main function
+ */
+function runVoxApp(){
+    
+    vxl.api.subscribe(vxl.events.MODELS_LOADED, this);
+    view = vxl.api.setup('view-1');
+    var gui = new vxlGUI(vxl.c.view);
+    vxl.api.load(['cone.json','sphere.json','cylinder.json'],'assets/models/geometry/',vxl.def.model.loadingMode.DETACHED);
+    view.start();
+};
+
+
+function generateCoords(s){
+    var c = [Math.random()*s, 0, Math.random()*s];
+    for (var i=0;i<3;i+=1){
+        if (Math.random()>0.5){
+            c[i] = -c[i]
+        }
+    }
+    return c;
+};
+
+/**
+ * Creates the cube array
+ */
+function createScene(){
+    view.scene.reset();
+    var count = 0, clon = undefined;
+    for (var i=0;i<=50;i+=1){
+            var t = Math.random();
+            if (t<=0.4){
+                clon = cone.clone();
+             }
+             else if (t>0.4 && t<=0.6){
+                clon = sphere.clone();
+             }
+             else{
+                clon = cylinder.clone();
+            }
+            clon.setPosition(generateCoords(90));
+            clon.setColor(Math.random()+0.2,Math.random()+0.2, Math.random()+.2);
+
+            view.scene.addActor(clon);
+    }
+};
+
+
+function handleEvent(event){
+    
+    /**
+    * The models were loaded with the DETACHED mode, meaning that no actors were created. So we retrieve them 
+    * from the model manager and create the actors. These three actors will serve to create the clones
+    */
+    var mman = vxl.go.modelManager;
+
+    cone     = new vxlActor(mman.getModelByName('cone'));
+    sphere   = new vxlActor(mman.getModelByName('sphere'));
+    cylinder = new vxlActor(mman.getModelByName('cylinder'));
+    
+    var scene = view.scene;
+
+
+    vxl.api.floorON(100,10);
+    //Create all the copies based on the cube actor that was removed from the scene
+    
+ 
+ 
+    //Setup cameras
+    cam0 = vxl.c.camera;
+    cam0.setType(vxl.def.camera.type.ORBITING);
+    cam0.setPosition(0,53,213);
+    cam0.setFocalPoint(0,0,0);
+    
+    cam1 = view.cameraman.create(vxl.def.camera.type.TRACKING);
+    cam1.setPosition(10,83,113);
+    cam1.setFocalPoint([0,0,0]);
+    
+    cam2 = view.cameraman.create(vxl.def.camera.type.EXPLORING);
+    cam2.setPosition([226.24, 315.51, 265.35]);
+    cam2.setFocalPoint(4.94, 5, -2.43);
+    
+    
+    createScene();
+    
+    view.interactor.addKeyAction('W', function(view,cam){cam.setFieldOfView(cam._fov+5); });
+    view.interactor.addKeyAction('N', function(view,cam){cam.setFieldOfView(cam._fov-5); });
+    
+    $('#overlay-div').fadeIn(3000);
+}; 
+
+</script>
+
+<script type="text/javascript">
+  //Google Analytics Script 
+  var _gaq = _gaq || []; _gaq.push(['_setAccount', 'UA-26954785-1']); _gaq.push(['_trackPageview']);  (function() {  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;     ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';     var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);   })();
+</script>
+
+<style type="text/css">
+.show {
+
+     position: relative;
+}
+
+.overlay {
+    background: rgba(150,150,150,0.5);
+    padding: 5px;
+    width: 150px;
+    height: 40%;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size:12px;
+	font-family: Arial,Helvetica;
+	color: white;
+}
+
+
+</style> 
+</head>
+<body onload='runVoxApp()'>
+	<div class='show'>
+	<canvas id = 'view-1' width=800 height=650 >
+		<p>
+			Your browser does not support WebGL :-(
+		</p>
+	</canvas>
+    
+    
+    <div id = 'overlay-div' class='overlay'>
+      <p><a href='#' id='btnGenerateScene'>Generate Random Scene</a></p>
+      <p><a href='#' id='btnCam0'>Camera 0 - Orbiting </a></p>
+      <p><a href='#' id='btnCam1'>Camera 1 - Tracking</a></p>
+      <p><a href='#' id='btnCam2'>Camera 2 - Exploring</a></p>
+      <p>Press <b>W</b> to <b>W</b>iden the view angle</p>
+      <p>Press <b>N</b> to <b>N</b>arrow the view angle</p>
+      
+    </div>  
+    
+    </div>
+    
+<script>
+$('#btnGenerateScene').button().click(
+    function(){
+        createScene(); //deletes all actors in the scene
+        
+    }
+);
+
+$('#btnCam0').button().click(
+    function(){
+        view.cameraman.switchTo(0);
+    }
+);
+
+$('#btnCam1').button().click(
+    function(){
+        view.cameraman.switchTo(1);
+    }
+);
+
+$('#btnCam2').button().click(
+    function(){
+        view.cameraman.switchTo(2);
+    }
+);
+</script>    
+</body>			
+</html>
