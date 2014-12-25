@@ -1,4 +1,4 @@
-Example code for the book [WebGL Insights](www.webglinsights.com).
+Example code for the book [WebGL Insights](http://www.webglinsights.com).
 
 * [Continuous Testing of Chrome's WebGL Implementation](Continuous-Testing-of-Chromes-WebGL-Implementation)
 * [Designing WebGL Cameras](Designing-WebGL-Cameras)
