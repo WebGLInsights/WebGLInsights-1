@@ -1,0 +1,122 @@
+<html>
+<meta charset="utf-8"/>
+<script>
+  var vertexShaderString = 
+  'uniform vec4 u;                                 \n\
+   void main(void) {                               \n\
+     gl_Position = u;                              \n\
+   }                                               \n';
+
+  var fragmentShaderString =
+  'precision mediump float;                   \n\
+   void main(void) {                          \n\
+     gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0); \n\
+   }                                          \n';
+
+  var iter = 0;
+  var numcalls = 1;
+  var infodiv;
+  var results = [];
+  var gl;
+  var uloc;
+  var i = 0;
+  var v = new Float32Array(4);
+  var starttime, duration;
+  var uniform1fmethod = false;
+
+  function start() {
+    gl = document.getElementById("c").getContext("webgl");
+
+    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertexShader, vertexShaderString);
+    gl.compileShader(vertexShader);
+
+    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragmentShader, fragmentShaderString);
+    gl.compileShader(fragmentShader);
+
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    uloc = gl.getUniformLocation(program, "u");
+
+    infodiv = document.getElementById("info");
+    infodiv.innerHTML = "running...";
+    requestAnimationFrame(run);
+  }
+
+  function run() {
+
+    if (uniform1fmethod) {
+      starttime = performance.now();
+      for (i = 0; i < numcalls; ++i) {
+        gl.uniform1f(uloc, i);
+      }
+      duration = performance.now() - starttime;
+    } else {
+      starttime = performance.now();
+      for (i = 0; i < numcalls; ++i) {
+        gl.uniform4f(uloc, i, i, i, i);
+      }
+      duration = performance.now() - starttime;
+    }
+  
+    results.push(
+      {
+        numcalls: numcalls,
+        uniform1fmethod: uniform1fmethod,
+        duration: duration
+      });
+
+    uniform1fmethod = !uniform1fmethod;
+    
+    if (duration > 100 && !uniform1fmethod) {
+      numcalls = 1;
+      iter++;
+      if (iter == 4) {
+        requestAnimationFrame(finish);
+        return;
+      }
+    } else {
+      if (!uniform1fmethod) {
+        numcalls *= 2;
+      }
+      
+    }
+    requestAnimationFrame(run);
+  }
+
+  function finish() {
+    var html = "<table border>" +
+               "<th>Number of calls</th>" +
+               "<th>Time with uniform4f</th>" +
+               "<th>Time with uniform1f</th>" +
+               "<th>uniform4f/uniform1f time ratio</th>";
+    for (i = 0; i < results.length; i += 2) {
+      var uniform4f = results[i];
+      var uniform1f = results[i+1];
+      
+      if (uniform4f.uniform1fmethod)
+        throw "unexpected: uniform4f.uniform1fmethod";
+      if (!uniform1f.uniform1fmethod)
+        throw "unexpected: !uniform1f.uniform1fmethod";
+      if (uniform4f.numcalls != uniform1f.numcalls)
+        throw "unexpected: uniform4f.numcalls != uniform1f.numcalls";
+      html += "<tr>" +
+              "<td>" + uniform4f.numcalls + "</td>" +
+              "<td>" + uniform4f.duration + "</td>" +
+              "<td>" + uniform1f.duration + "</td>" +
+              "<td>" + uniform4f.duration / uniform1f.duration + "</td>" +
+              "</tr>";        
+    }
+    html += "</table>";
+    infodiv.innerHTML = html;
+  }
+</script>
+<body onload="start();">
+  <canvas id="c" style="display:none"></canvas>
+  <div id="info"></div>
+</body>
