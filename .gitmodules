@@ -1,0 +1,3 @@
+[submodule "Emscripten-WebGL/opengles2-book"]
+	path = Emscripten-WebGL/opengles2-book
+	url = git@github.com:nickdesaulniers/opengles2-book.git
