@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+<title>Structured Clone Overhead</title>
+</head>
+<body>
+<button id='timeWorkerCloneButton' onclick='timeWorkerClone()'>Run with cloning</button> Time:<span id='timeWorkerClone'>0 ms</span><br/><br/>
+<button id='timeWorkerPackButton' onclick='timeWorkerPack()'>Run with packing</button> Time:<span id='timeWorkerPack'>0 ms</span>
+<script>
+"use strict";
+var Cartesian3 = function(x, y, z) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+};
+
+var timeWorkedElement = document.getElementById('timeWorkerClone');
+var timeWorkedPackedElement = document.getElementById('timeWorkerPack');
+var timeWorkerCloneButton = document.getElementById('timeWorkerCloneButton');
+var timeWorkerPackButton = document.getElementById('timeWorkerPackButton');
+
+var data = [];
+for (var i = 0; i < 500000; i++) {
+    data.push(new Cartesian3(Math.random(), Math.random(), Math.random()));
+}
+
+function timeWorkerClone() {
+	timeWorkerCloneButton.disabled = true;
+	timeWorkerPackButton.disabled = true;
+
+    var simpleWorker = new Worker("StructuredCloneOverheadWorker.js");
+    var start = performance.now();
+    simpleWorker.addEventListener("message", function(e) {
+        timeWorkedElement.textContent = (performance.now() - start).toFixed(3) + ' ms';
+        simpleWorker.terminate();
+		timeWorkerCloneButton.disabled = false;
+		timeWorkerPackButton.disabled = false;
+    }, false);
+    simpleWorker.postMessage(data);
+}
+
+function packCartesian3Array(data) {
+    var j = 0;
+    var packedData = new Float64Array(data.length * 3);
+    for (var i = 0, len = data.length; i < len; i++) {
+        var item = data[i];
+        packedData[j++] = item.x;
+        packedData[j++] = item.y;
+        packedData[j++] = item.z;
+    }
+    return packedData;
+}
+
+function unpackCartesian3Array(packedData) {
+    var j = 0;
+    var data = new Array(packedData.length / 3);
+    for (var i = 0; i < packedData.length; i++) {
+        var x = packedData[j++];
+        var y = packedData[j++];
+        var z = packedData[j++];
+        data[i] = new Cartesian3(x, y, z);
+    }
+    return data;
+}
+
+function timeWorkerPack() {
+	timeWorkerCloneButton.disabled = true;
+	timeWorkerPackButton.disabled = true;
+
+    var packedWorker = new Worker("StructuredCloneOverheadWorker.js");
+    var start = performance.now();
+
+    var packedData = packCartesian3Array(data);
+    packedWorker.addEventListener("message", function(e) {
+        var receivedData = unpackCartesian3Array(e.data);
+        timeWorkedPackedElement.textContent = (performance.now() - start).toFixed(3) + ' ms';
+        packedWorker.terminate();
+		timeWorkerCloneButton.disabled = false;
+		timeWorkerPackButton.disabled = false;
+    }, false);
+
+    packedWorker.postMessage(packedData, [packedData.buffer]);
+}
+</script>
+</body>
+</html>

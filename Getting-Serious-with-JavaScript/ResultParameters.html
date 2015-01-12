@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+<title>Result parameters</title>
+</head>
+<body>
+<button onclick='run()'>Run</button> Time:<span id='runTime'>0 ms</span><br/><br/>
+<button onclick='runWithResultParameters()'>Run with result parameters</button> Time:<span id='runWithResultTime'>0 ms</span>
+<script>
+"use strict";
+var Cartesian3 = function(x, y, z) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+};
+
+Cartesian3.add = function(left, right) {
+    var x = left.x + right.x;
+    var y = left.y + right.y;
+    var z = left.z + right.z;
+    return new Cartesian3(x, y, z);
+};
+
+Cartesian3.multiplyByScalar = function(value, scalar) {
+    var x = value.x * scalar;
+    var y = value.y * scalar;
+    var z = value.z * scalar;
+    return new Cartesian3(x, y, z);
+};
+
+Cartesian3.lerp = function(start, end, t) {
+    var tmp = Cartesian3.multiplyByScalar(end, t);
+    var tmp2 = Cartesian3.multiplyByScalar(start, 1.0 - t);
+    return Cartesian3.add(tmp, tmp2);
+};
+
+Cartesian3.addResult = function(left, right, result) {
+    result.x = left.x + right.x;
+    result.y = left.y + right.y;
+    result.z = left.z + right.z;
+    return result;
+};
+
+Cartesian3.multiplyByScalarResult = function(value, scalar, result) {
+    result.x = value.x * scalar;
+    result.y = value.y * scalar;
+    result.z = value.z * scalar;
+    return result;
+};
+
+var tmp = new Cartesian3(0, 0, 0);
+var tmp2 = new Cartesian3(0, 0, 0);
+Cartesian3.lerpResult = function(start, end, t, result) {
+    Cartesian3.multiplyByScalarResult(end, t, tmp);
+    Cartesian3.multiplyByScalarResult(start, 1.0 - t, tmp2);
+    return Cartesian3.addResult(tmp, tmp2, result);
+};
+
+var iterations = 100000;
+var runTime = document.getElementById('runTime');
+var runWithResultTime = document.getElementById('runWithResultTime');
+
+function run() {
+    var time = performance.now();
+    var start = new Cartesian3(Math.random(), Math.random(), Math.random());
+    var end = new Cartesian3(Math.random(), Math.random(), Math.random());
+    for (var i = 0; i < iterations; i++) {
+        Cartesian3.lerp(start, end, Math.random());
+    }
+    runTime.textContent = (performance.now() - time); 
+}
+
+function runWithResultParameters() {
+    var result = new Cartesian3();
+
+    var time = performance.now();
+    var start = new Cartesian3(Math.random(), Math.random(), Math.random());
+    var end = new Cartesian3(Math.random(), Math.random(), Math.random());
+    for (var i = 0; i < iterations; i++) {
+        Cartesian3.lerpResult(start, end, Math.random(), result);
+    }
+    runWithResultTime.textContent = (performance.now() - time); 
+}
+</script>
+</body>
+</html>
