@@ -1,6 +1,9 @@
 Example code for the book [WebGL Insights](http://www.webglinsights.com).
 
-To include the submodules, clone with `git clone --recurse-submodules git@github.com:WebGLInsights/WebGLInsights-1.git`
+To include the submodules, clone with:
+```
+git clone --recurse-submodules git@github.com:WebGLInsights/WebGLInsights-1.git
+```
 
 * [Continuous Testing of Chrome's WebGL Implementation](Continuous-Testing-of-Chromes-WebGL-Implementation)
 * [Emscripten & WebGL](Emscripten-WebGL)
