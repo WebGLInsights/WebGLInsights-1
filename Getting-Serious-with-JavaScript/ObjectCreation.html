@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+<title>Object Creation</title>
+</head>
+<body>
+<button onclick='createWithNew()'>Create with new</button> Time:<span id='newCreate'>0 ms</span><br/><br/>
+<button onclick='createWithObjectLiterals()'>Create with object literals</button> Time:<span id='objectLiteralTime'>0 ms</span><br/><br/>
+<button onclick='createWithObjectCreate()'>Create with Object.create</button> Time:<span id='objectCreateTime'>0 ms</span><br/><br/>
+<script>
+"use strict";
+var Cartesian3 = function(x, y, z) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+};
+
+Cartesian3.prototype.add = function(left, right, result) {
+    result.x = left.x + right.x;
+    result.y = left.y + right.y;
+    result.z = left.z + right.z;
+    return result;
+};
+
+Cartesian3.prototype.subtract = function(left, right, result) {
+    result.x = left.x - right.x;
+    result.y = left.y - right.y;
+    result.z = left.z - right.z;
+    return result;
+};
+
+function createCartesian3Literal(x, y, z) {
+    return {
+        x : x,
+        y : y,
+        z : z,
+        add : Cartesian3.prototype.add,
+        subtract : Cartesian3.prototype.subtract
+    };
+}
+
+function createCartesian3ObjectCreate(x, y, z) {
+    var value = Object.create(Cartesian3.prototype);
+    value.x = x;
+    value.y = y;
+    value.z = z;
+    return value;
+}
+
+var iterations = 10000000;
+var newCreate = document.getElementById('newCreate');
+var objectLiteralTime = document.getElementById('objectLiteralTime');
+var objectCreateTime = document.getElementById('objectCreateTime');
+
+function createWithNew() {
+    var time = performance.now();
+    for (var i = 0; i < iterations; i++) {
+        var value = new Cartesian3(Math.random(), Math.random(), Math.random());
+    }
+    newCreate.textContent = (performance.now() - time); 
+}
+
+function createWithObjectLiterals() {
+    var time = performance.now();
+    for (var i = 0; i < iterations; i++) {
+        var value = createCartesian3Literal(Math.random(), Math.random(), Math.random());
+    }
+    objectLiteralTime.textContent = (performance.now() - time); 
+}
+
+function createWithObjectCreate() {
+    var time = performance.now();
+    for (var i = 0; i < iterations; i++) {
+        var value = createCartesian3ObjectCreate(Math.random(), Math.random(), Math.random());
+    }
+    objectCreateTime.textContent = (performance.now() - time); 
+}
+</script>
+</body>
+</html>
