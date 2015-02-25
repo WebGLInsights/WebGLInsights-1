@@ -15,7 +15,7 @@ Example code for the book [WebGL Insights](http://www.webglinsights.com).
 
 **III. Mobile**
 
-8 - Bug-Free and Fast Mobile WebGL
+8 - [Bug-Free and Fast Mobile WebGL](08-Bug-Free-and-Fast-Mobile-WebGL)
 
 **IV. Engine Design**
 

@@ -1,0 +1,92 @@
+<html>
+<head>
+<title>Interleaved vs. non-interleaved vertex arrays loading performance</title>
+<script src="lib/util.js"></script>
+<script>
+"use strict";
+
+var log = benchUtil.log;
+
+var verts = 1000000;
+var size = verts * 3; // 1 vec3 per vert
+
+var attrs = 3;
+var arr1 = new Float32Array(size);
+var arr2 = new Float32Array(size);
+var arr3 = new Float32Array(size);
+
+for (var i = 0; i < size; ++i) {
+    arr1[i] = i * 0.1;
+    arr2[i] = i * 0.01;
+    arr3[i] = i * 0.001;
+}
+
+var canvas = document.createElement('canvas');
+var gl = canvas.getContext('webgl');
+
+var testInterleaved = function() {
+    var start = new Date().getTime();
+
+    var interleaved = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, interleaved);
+    var data = new Float32Array(size * 3);
+    var k = 0;
+    for (var i = 0; i < verts; ++i) {
+        data[k] = arr1[i];
+        data[k + 1] = arr1[i + 1];
+        data[k + 2] = arr1[i + 2];
+        data[k + 3] = arr2[i];
+        data[k + 4] = arr2[i + 1];
+        data[k + 5] = arr2[i + 2];
+        data[k + 6] = arr3[i];
+        data[k + 7] = arr3[i + 1];
+        data[k + 8] = arr3[i + 2];
+        k += 9;
+    }
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+    gl.finish();
+    var spent = new Date().getTime() - start;
+
+    log('Error: ' + gl.getError());
+    return spent;
+};
+
+var testNonInterleaved = function() {
+    var start = new Date().getTime();
+
+    var positions = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positions);
+    gl.bufferData(gl.ARRAY_BUFFER, arr1, gl.STATIC_DRAW);
+
+    var texCoords = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoords);
+    gl.bufferData(gl.ARRAY_BUFFER, arr2, gl.STATIC_DRAW);
+
+    var normals = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, normals);
+    gl.bufferData(gl.ARRAY_BUFFER, arr3, gl.STATIC_DRAW);
+
+    gl.finish();
+    var spent = new Date().getTime() - start;
+
+    log('Error: ' + gl.getError());
+    return spent;
+};
+
+var run = function() {
+    log('Testing vertex buffer loading time with ' + verts + ' vertices');
+
+    var interleavedTime = testInterleaved();
+    setTimeout(function() {
+        var nonInterleavedTime = testNonInterleaved();
+
+        log('Interleaved: ' + interleavedTime + 'ms');
+        log('Non-interleaved: ' + nonInterleavedTime + 'ms');
+    }, 1000);
+};
+</script>
+</head>
+<body onload="run()">
+</body>
+</html>

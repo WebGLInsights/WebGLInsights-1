@@ -1,0 +1,183 @@
+<html>
+<head>
+<title>Drawing performance with different kinds of state setup</title>
+<script src="lib/util.js"></script>
+<script>
+"use strict";
+
+var cpuWorkPerFrame = 20; // milliseconds
+var numAttrs = 4;
+var numLights = 4; // 1 vec3 uniform per "light"
+var modelRes = 25;
+var objectCount = 25 * 25;
+var useDrawElements = false;
+var interleaved = false;
+var useVAO = false;
+var updateLightsForEachObject = false;
+
+var fpsInterval = 10; // seconds
+
+var startTime;
+var startedCount = false;
+var frameCount = 0;
+
+var rowCount = Math.ceil(Math.sqrt(objectCount));
+
+var log = benchUtil.log;
+
+var scale = 1 / (rowCount * 1.1);
+
+var transform = new Float32Array(
+    [scale, 0,     0,     0,
+     0,     scale, 0,     0,
+     0,     0,     scale, 0,
+     0,     0,     0,     1]);
+
+var canvas = document.createElement('canvas');
+canvas.width = 512;
+canvas.height = 512;
+var gl = canvas.getContext('webgl');
+
+var matloc;
+var lightloc = [];
+var drawA;
+var drawB;
+
+var addLinksToVersions = function() {
+    var pagepath = window.location.origin + window.location.pathname;
+
+    var addLink = function(name, suffix) {
+        var a = document.createElement('a');
+        if (suffix !== '') {
+            a.href = pagepath + '?' + suffix;
+        } else {
+            a.href = pagepath;
+        }
+        a.textContent = name;
+        document.body.appendChild(a);
+    };
+    addLink('use drawArrays', '');
+    addLink('use drawElements', 'e=1');
+    addLink('use drawElements & interleaving', 'e=1&i=1');
+    addLink('use drawElements & VAO', 'e=1&v=1');
+    addLink('use drawElements & VAO & interleaving', 'e=1&v=1&i=1');
+    addLink('use drawElements & update uniforms redundantly', 'e=1&u=1');
+    addLink('use drawElements & VAO & interleaving, update uniforms redundantly', 'e=1&v=1&i=1&u=1');
+};
+
+var run = function() {
+    document.body.appendChild(canvas);
+    glUtil.init(gl);
+
+    addLinksToVersions();
+
+    useDrawElements = window.location.search.indexOf('e=1') > 0;
+    interleaved = window.location.search.indexOf('i=1') > 0;
+    useVAO = window.location.search.indexOf('v=1') > 0;
+    updateLightsForEachObject = window.location.search.indexOf('u=1') > 0;
+
+    log('Testing drawing with a grid-like mesh, ' + modelRes * modelRes * 2 + ' triangles per mesh, ' + objectCount + ' meshes');
+
+    var paramsStr = [
+        'using ' + (useDrawElements ? 'drawElements' : 'drawArrays'),
+        (interleaved ? 'interleaved vertex data' : 'non-interleaved vertex data'),
+        (useVAO ? (gl.getExtension('OES_vertex_array_object') ? 'using VAO' : 'VAO unsupported') : 'VAO not in use'),
+        'number of active attributes: ' + numAttrs
+    ];
+    if (updateLightsForEachObject) {
+        paramsStr.push('updating ' + numLights + ' vec3 uniforms redundantly for each object');
+    }
+    log('Parameters: ' + paramsStr.join(', '));
+
+    var prog = glUtil.createGridShader(numAttrs, numLights);
+    matloc = gl.getUniformLocation(prog, 'u_mat');
+    for (var i = 0; i < numLights; ++i) {
+        lightloc.push(gl.getUniformLocation(prog, 'u_light' + i));
+    }
+
+    gl.useProgram(prog);
+
+    drawA = glUtil.createWarpedGrid(modelRes, modelRes, numAttrs, useDrawElements, gl.TRIANGLES, interleaved, useVAO, 0);
+    drawB = glUtil.createWarpedGrid(modelRes, modelRes, numAttrs, useDrawElements, gl.TRIANGLES, interleaved, useVAO, 1);
+    startTime = benchUtil.now();
+    drawFrame();
+}
+
+var light = new Float32Array([0.9, 1.0, 0.95]);
+
+var drawFrame = function() {
+    var now = benchUtil.now();
+    if (now - startTime > 5000 && !startedCount) { // use 5 seconds for warm-up
+        startedCount = true;
+        startTime = now;
+    }
+    benchUtil.cpuWorkMillis(cpuWorkPerFrame);
+
+    gl.clearColor(0.7, 0.4, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    light[0] = 1.0 + Math.sin(now * 0.001) * 0.1;
+    for (var k = 0; k < numLights; ++k) {
+        gl.uniform3fv(lightloc[k], light);
+    }
+    var step = scale * 2.16;
+    var startX = -step * (rowCount - 1) * 0.5;
+    var x = startX;
+    var y = startX;
+    var j = 0;
+    for (var i = 0; i < objectCount; ++i) {
+        transform[12] = x;
+        transform[13] = y;
+        x += step;
+        transform[4] = Math.sin(now * 0.002) * 0.1 * (scale + 0.1);
+        transform[1] = Math.sin(i) * 0.01;
+        ++j;
+        if (j == rowCount) {
+            x = startX;
+            y += step;
+            j = 0;
+        }
+        if (updateLightsForEachObject) {
+            for (var k = 0; k < numLights; ++k) {
+                gl.uniform3fv(lightloc[k], light);
+            }
+        }
+        gl.uniformMatrix4fv(matloc, false, transform);
+        if ((i & 1) == 0) {
+            drawA();
+        } else {
+            drawB();
+        }
+    }
+    if (startedCount) {
+        now = benchUtil.now();
+        frameCount++;
+        var elapsed = now - startTime;
+        if (elapsed > 1000 * fpsInterval) {
+            var fps = frameCount / (elapsed * 0.001);
+            benchUtil.log('FPS over last ' + fpsInterval + ' seconds: ' + fps);
+            frameCount = 0;
+            if (elapsed > 1000 * fpsInterval + 1000) {
+                startTime = now;
+            } else {
+                startTime += 1000 * fpsInterval;
+            }
+        }
+    }
+    requestAnimationFrame(drawFrame);
+};
+</script>
+<style>
+a {
+    display: block;
+    width: 502px;
+    margin: 5px 0;
+    padding: 5px;
+    background: #aaa;
+}
+</style>
+</head>
+<body onload="run()">
+<h1>WebGL draw call CPU overhead test</h1>
+<p>Note: run this with vsync disabled for the most accurate results (--disable-gpu-vsync in Chrome). Results are not comparable between different devices.</p>
+</body>
+</html>
