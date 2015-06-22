@@ -11,7 +11,7 @@ Example code for the book [WebGL Insights](http://www.webglinsights.com).
 4 - [Getting Serious with JavaScript](04-Getting-Serious-with-JavaScript)<br />
 5 - [Emscripten & WebGL](05-Emscripten-WebGL)<br />
 6 - [Data Visualization with WebGL: from Python to JavaScript](https://github.com/vispy/webgl-insights)<br />
-7 - [Teaching an Introductory Computer Graphics Course with WebGL](http://www.cs.unm.edu/~angel/WebGL/7E/)
+7 - [Teaching an Introductory Computer Graphics Course with WebGL](https://github.com/esangel/WebGL)
 
 **III. Mobile**
 
