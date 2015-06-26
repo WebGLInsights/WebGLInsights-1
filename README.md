@@ -31,7 +31,7 @@ Example code for the book [WebGL Insights](http://www.webglinsights.com).
 15 - Deferred Shading in Luma<br />
 16 - HDR Image-Based Lighting on the Web<br />
 17 - Real-Time Volumetric Lighting for WebGL<br />
-18 - Terrain Geometry - LOD Adapting Concentric Rings
+18 - [Terrain Geometry - LOD Adapting Concentric Rings](https://github.com/pyalot/webgl-lacr)
 
 **VI. Visualization**
 
