@@ -10,8 +10,8 @@ For an interactive demo on how lower-precision floating point numbers behave, se
 
 ## How to Use Precision Emulation on Chrome
 
-On Windows, run Chrome with the command line flags **--emulate-shader-precision --use-gl=desktop**. This will make ANGLE to insert precision emulation code to all shaders it compiles. The shaders will act as if they were running on mobile devices which include 16-bit float hardware, revealing incorrect usage of mediump and lowp floats.
+Run Chrome with the command line flag **--emulate-shader-precision**. This will make ANGLE to insert precision emulation code to all shaders it compiles. The shaders will act as if they were running on a device which includes 16-bit float hardware, revealing incorrect usage of mediump and lowp floats.
 
-On Linux/Mac, using simply **--emulate-shader-precision** is enough.
+Precision emulation is supported on all OpenGL based platforms (mostly Linux and Mac), and also on DirectX 11 -capable Windows PCs starting from Chrome version 54 (available in the Canary channel starting June 15th 2016).
 
 Note that the precision emulation has a very high performance cost.
